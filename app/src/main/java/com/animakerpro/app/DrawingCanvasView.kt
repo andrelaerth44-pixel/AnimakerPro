@@ -5,7 +5,6 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -26,8 +25,15 @@ class DrawingCanvasView @JvmOverloads constructor(
     var rulerMode = RulerMode.OFF
         set(value) { field = value; invalidate() }
 
+    var brushSize = 5f
+        set(value) { field = value.coerceIn(1f, 80f); invalidate() }
+    var brushOpacity = 1f
+        set(value) { field = value.coerceIn(0.05f, 1f); invalidate() }
+    var brushColor = Color.BLACK
+        set(value) { field = value; invalidate() }
+    var pressureSensitivity = true
+
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
@@ -35,6 +41,7 @@ class DrawingCanvasView @JvmOverloads constructor(
     private var lastX = 0f
     private var lastY = 0f
     private var strokePath: Path? = null
+    private var strokePressure = 1f
     private var zoom = 1f
     private var panX = 0f
     private var panY = 0f
@@ -56,9 +63,13 @@ class DrawingCanvasView @JvmOverloads constructor(
             val onion = Paint(Paint.ANTI_ALIAS_FLAG).apply { alpha = 70 }
             canvas.drawBitmap(doc.frames[doc.currentFrame - 1].bitmap, null, dst, onion)
         }
-
         drawRuler(canvas, dst)
-        strokePath?.let { canvas.drawPath(it, paint) }
+        strokePath?.let {
+            paint.color = brushColor
+            paint.alpha = (brushOpacity * 255).toInt()
+            paint.strokeWidth = brushSize * strokePressure
+            canvas.drawPath(it, paint)
+        }
     }
 
     private fun drawRuler(canvas: Canvas, rect: RectF) {
@@ -82,9 +93,7 @@ class DrawingCanvasView @JvmOverloads constructor(
                     canvas.drawLine(cx, cy, cx + cos(a).toFloat() * rect.width(), cy + sin(a).toFloat() * rect.height(), guide)
                 }
             }
-            RulerMode.MIRROR -> {
-                canvas.drawLine(cx, rect.top, cx, rect.bottom, guide)
-            }
+            RulerMode.MIRROR -> canvas.drawLine(cx, rect.top, cx, rect.bottom, guide)
             RulerMode.KALEIDOSCOPE, RulerMode.ROTATION -> {
                 canvas.drawCircle(cx, cy, 8f, guide)
                 for (i in 0 until 8) {
@@ -123,6 +132,7 @@ class DrawingCanvasView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 lastX = event.x
                 lastY = event.y
+                strokePressure = if (pressureSensitivity) event.pressure.coerceIn(.25f, 1.5f) else 1f
                 strokePath = Path().apply { moveTo(event.x, event.y) }
                 return true
             }
@@ -141,6 +151,7 @@ class DrawingCanvasView @JvmOverloads constructor(
                 val x = event.x
                 val y = event.y
                 val path = strokePath ?: Path().also { strokePath = it }
+                if (pressureSensitivity) strokePressure = event.pressure.coerceIn(.25f, 1.5f)
                 if (rulerMode == RulerMode.STRAIGHT) {
                     path.reset(); path.moveTo(lastX, lastY); path.lineTo(x, y)
                 } else {
@@ -161,8 +172,9 @@ class DrawingCanvasView @JvmOverloads constructor(
                     canvas.translate(-left, -top)
                     canvas.scale(1f / scale, 1f / scale)
                     val sourcePaint = Paint(paint).apply {
-                        strokeWidth = 5f / scale
-                        color = Color.BLACK
+                        strokeWidth = brushSize * strokePressure / scale
+                        color = brushColor
+                        alpha = (brushOpacity * 255).toInt()
                     }
                     canvas.drawPath(path, sourcePaint)
                     canvas.restore()
