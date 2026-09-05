@@ -11,21 +11,54 @@ This is not intended to be a simple rebrand of OpenToonz. AnimakerPro will have 
 ### Core capabilities
 
 - High-quality raster drawing and painting
-- Vector/line-art workflows where appropriate
-- Pressure-sensitive stylus input
-- Custom brushes, stabilization and brush dynamics
+- Deep brush engine with pressure, opacity, dynamics, texture and stabilization
+- Ibis-inspired ruler family: straight, circular, elliptical, radial, mirror, kaleidoscope, rotation, array and 1/2/3-point perspective
 - Layers, groups, clipping, alpha lock and blend modes
-- Frame-by-frame animation
+- Frame-by-frame animation with fast add/clone/reorder operations
 - Timeline, exposure and frame management
 - Onion skin with configurable previous/next frame visibility
+- Multi-frame copy/paste and Frames Viewer workflows
 - Transform, selection, fill, color picker and shape tools
-- Camera/workspace controls and canvas rotation/zoom
+- Professional camera/workspace controls
 - Audio track and synchronized playback
 - Import/export of common image, video and animation formats
 - Project autosave, recovery and version-safe project files
 - Phone and tablet layouts
 - Touch gestures plus optional keyboard/mouse support
 - Hardware-accelerated rendering where available
+
+## Research baseline
+
+Detailed research notes are in [`docs/FEATURE_RESEARCH.md`](docs/FEATURE_RESEARCH.md). The design study covered official documentation, interface screenshots and community discussions for Ibis Paint X, FlipaClip and RoughAnimator.
+
+The product synthesis is intentional:
+
+1. **Ibis Paint X** → professional drawing, brush dynamics, stabilization and ruler depth.
+2. **FlipaClip** → simple frame-first workflow, Frames Viewer, quick duplication/copy/paste and onion skin.
+3. **RoughAnimator** → serious timeline, exposure, cycles, camera, audio, rotoscoping and production controls.
+
+## Current implementation
+
+The Android foundation is now in the repository. The first functional workspace includes:
+
+- Android Gradle application shell
+- Touch drawing canvas
+- Stylus pressure-responsive brush foundation
+- Brush size/opacity/pressure controls
+- Onion-skin preview
+- Pinch zoom foundation
+- Ruler mode system with the planned ruler families and perspective guide overlays
+- Frame document model
+- Add/duplicate/remove frames
+- Multi-frame copy/paste foundation
+- Loop creation foundation
+- Timeline/filmstrip and scrubbing
+- Frame long-press actions
+- Frames Viewer multi-selection
+- Playback controls
+- GitHub Actions debug APK build pipeline
+
+This is **the first engineering slice, not the finished professional app**. The next layers are the real brush engine, editable ruler handles/snapping, multi-layer drawings, exposure editing, camera timeline, audio, project persistence, GPU rendering and the OpenToonz-derived core components that make sense on Android.
 
 ## OpenToonz foundation
 
@@ -43,7 +76,7 @@ AnimakerPro/
 ├── core/          # Document, scene, frame and project model
 ├── render/        # GPU/CPU rendering and compositing
 ├── timeline/      # Frames, exposure, playback, onion skin
-├── tools/         # Brush, eraser, fill, transform, selection, etc.
+├── tools/         # Brush, eraser, fill, transform, selection, rulers
 ├── formats/       # Project and media import/export
 ├── third_party/   # External dependencies and notices
 └── docs/          # Architecture, porting and licensing notes
@@ -51,14 +84,15 @@ AnimakerPro/
 
 ## Development stages
 
-1. Establish Android application shell and tablet/phone workspace.
-2. Build the document/canvas/timeline core with touch and stylus input.
-3. Port/adapt the required OpenToonz-compatible rendering and animation components instead of attempting to port the entire desktop UI stack.
-4. Add professional drawing and animation tools.
-5. Add audio, import/export, project recovery and production workflows.
-6. Profile on real Android hardware and optimize memory/GPU usage.
-7. Produce signed Android builds and automated release checks.
+1. ~~Android application shell and workspace~~
+2. ~~Document/canvas/timeline first core~~
+3. Build the production brush/ruler engine and multi-layer drawing model.
+4. Port/adapt the required OpenToonz-compatible rendering and animation components instead of attempting to port the entire desktop UI stack.
+5. Add camera, exposure, cycles, audio, rotoscoping and professional production workflows.
+6. Add project persistence, autosave/recovery and import/export.
+7. Profile on real Android hardware and optimize memory/GPU usage.
+8. Produce signed Android releases and automated release checks.
 
-## Current status
+## License and attribution
 
-Repository initialized. The immediate engineering task is the Android foundation and a technical OpenToonz porting assessment. The source must be adapted for Android rather than pretending the existing desktop Qt stack is already Android-compatible.
+AnimakerPro must keep the licensing and attribution requirements of every upstream component it incorporates. OpenToonz and its bundled third-party components have separate notices/licenses; these will be tracked in `third_party/` as integration progresses.
