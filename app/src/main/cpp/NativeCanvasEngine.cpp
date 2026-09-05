@@ -12,7 +12,7 @@ struct Point{float x,y,size,alpha;};
 struct Engine{
  std::mutex mutex; int width=1,height=1,currentFrame=0; float brushSize=8,opacity=1,colorR=.02f,colorG=.02f,colorB=.02f;
  bool pressure=true,drawing=false,onionSkin=true,eraser=false; float stabilization=.35f,lastX=0,lastY=0,smoothX=0,smoothY=0;
- float zoom=1,panX=0,panY=0,pressureSize=1,pressureOpacity=.25f,spacing=3,taperStart=0,taperEnd=0;
+ float zoom=1,panX=0,panY=0,rotation=0,pressureSize=1,pressureOpacity=.25f,spacing=3,taperStart=0,taperEnd=0;
  std::vector<std::vector<Point>>frames; Engine():frames(1){}
  void setFrame(int f){std::lock_guard<std::mutex>l(mutex);currentFrame=std::max(0,f);if(currentFrame>=(int)frames.size())frames.resize(currentFrame+1);}
  void resize(int w,int h){width=std::max(1,w);height=std::max(1,h);glViewport(0,0,width,height);}
