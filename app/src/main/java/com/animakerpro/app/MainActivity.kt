@@ -1,7 +1,6 @@
 package com.animakerpro.app
 
 import android.app.Activity
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -20,14 +19,11 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         document = AnimationDocument()
-
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.rgb(17, 19, 24))
         }
-
         root.addView(toolbar(), LinearLayout.LayoutParams(-1, dp(56)))
-
         canvasView = DrawingCanvasView(this).apply { document = this@MainActivity.document }
         root.addView(canvasView, LinearLayout.LayoutParams(-1, 0, 1f))
 
@@ -37,16 +33,11 @@ class MainActivity : Activity() {
         }
         timeline = TimelineView(this).apply {
             document = this@MainActivity.document
-            onFrameSelected = { index ->
-                document.select(index)
-                canvasView.invalidate()
-                invalidate()
-            }
+            onFrameSelected = { index -> document.select(index); refresh() }
             onFrameLongPressed = { index -> showFrameActions(index) }
         }
         timelineScroll.addView(timeline, HorizontalScrollView.LayoutParams(-1, dp(132)))
         root.addView(timelineScroll)
-
         root.addView(animationControls(), LinearLayout.LayoutParams(-1, dp(54)))
         setContentView(root)
     }
@@ -56,16 +47,12 @@ class MainActivity : Activity() {
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(8), 0, dp(8), 0)
         setBackgroundColor(Color.rgb(24, 27, 33))
-
         addButton("☰") { showInfo("AnimakerPro", "Android-first professional 2D animation studio.\n\nDrawing + frame animation + professional timeline + rulers.") }
+        addButton("🖌") { showBrushSettings() }
         addButton("✎") { showRulerPicker() }
-        addButton("◌") {
-            canvasView.onionSkin = !canvasView.onionSkin
-            canvasView.invalidate()
-        }
-        addButton("↶") { /* undo history will move into the document core */ }
-        addButton("↷") { /* redo history will move into the document core */ }
-
+        addButton("◌") { canvasView.onionSkin = !canvasView.onionSkin; canvasView.invalidate() }
+        addButton("↶") { /* history core */ }
+        addButton("↷") { /* history core */ }
         val spacer = Space(this)
         addView(spacer, LinearLayout.LayoutParams(0, -1, 1f))
         addButton("＋") { addFrame() }
@@ -87,79 +74,79 @@ class MainActivity : Activity() {
         addButton("Loop") { makeLoop() }
     }
 
-    private fun addFrame() {
-        document.addBlank()
-        refresh()
+    private fun showBrushSettings() {
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(8), dp(20), 0) }
+        val sizeLabel = TextView(this).apply { text = "Tamanho: ${canvasView.brushSize.toInt()} px"; setTextColor(Color.WHITE) }
+        val size = SeekBar(this).apply { max = 79; progress = canvasView.brushSize.toInt() - 1 }
+        size.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { canvasView.brushSize = (p + 1).toFloat(); sizeLabel.text = "Tamanho: ${p + 1} px" }
+            override fun onStartTrackingTouch(s: SeekBar?) = Unit
+            override fun onStopTrackingTouch(s: SeekBar?) = Unit
+        })
+        val opacityLabel = TextView(this).apply { text = "Opacidade: ${(canvasView.brushOpacity * 100).toInt()}%"; setTextColor(Color.WHITE) }
+        val opacity = SeekBar(this).apply { max = 100; progress = (canvasView.brushOpacity * 100).toInt() }
+        opacity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { canvasView.brushOpacity = (p.coerceAtLeast(5) / 100f); opacityLabel.text = "Opacidade: ${p.coerceAtLeast(5)}%" }
+            override fun onStartTrackingTouch(s: SeekBar?) = Unit
+            override fun onStopTrackingTouch(s: SeekBar?) = Unit
+        })
+        val pressure = CheckBox(this).apply { text = "Pressão do stylus"; isChecked = canvasView.pressureSensitivity; setTextColor(Color.WHITE) }
+        pressure.setOnCheckedChangeListener { _, checked -> canvasView.pressureSensitivity = checked }
+        panel.addView(sizeLabel); panel.addView(size); panel.addView(opacityLabel); panel.addView(opacity); panel.addView(pressure)
+        AlertDialog.Builder(this).setTitle("Pincel").setView(panel).setPositiveButton("OK", null).show()
     }
 
-    private fun duplicateFrame() {
-        document.duplicate()
-        refresh()
-    }
-
+    private fun addFrame() { document.addBlank(); refresh() }
+    private fun duplicateFrame() { document.duplicate(); refresh() }
     private fun makeLoop() {
         if (document.frames.size < 2) return
         document.makeLoop(0, document.frames.lastIndex)
         refresh()
     }
-
     private fun togglePlayback() {
         playing = !playing
         if (playing) playNext() else handler.removeCallbacksAndMessages(null)
     }
-
     private fun playNext() {
         if (!playing) return
         document.select((document.currentFrame + 1) % document.frames.size)
         refresh()
         handler.postDelayed({ playNext() }, 1000L / document.fps)
     }
-
-    private fun refresh() {
-        canvasView.invalidate()
-        timeline.invalidate()
-    }
+    private fun refresh() { canvasView.invalidate(); timeline.invalidate() }
 
     private fun showRulerPicker() {
         val modes = DrawingCanvasView.RulerMode.values()
         val labels = modes.map { it.name.replace('_', ' ') }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Régua")
+        AlertDialog.Builder(this).setTitle("Régua")
             .setSingleChoiceItems(labels, modes.indexOf(canvasView.rulerMode)) { dialog, which ->
-                canvasView.rulerMode = modes[which]
-                dialog.dismiss()
-            }
-            .show()
+                canvasView.rulerMode = modes[which]; dialog.dismiss()
+            }.show()
     }
 
     private fun showFrameActions(index: Int) {
         val options = arrayOf("Selecionar", "Duplicar", "Excluir")
-        AlertDialog.Builder(this)
-            .setTitle("Quadro ${index + 1}")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> document.select(index)
-                    1 -> { document.select(index); document.duplicate() }
-                    2 -> { document.select(index); document.remove() }
-                }
-                refresh()
-            }.show()
+        AlertDialog.Builder(this).setTitle("Quadro ${index + 1}").setItems(options) { _, which ->
+            when (which) {
+                0 -> document.select(index)
+                1 -> { document.select(index); document.duplicate() }
+                2 -> { document.select(index); document.remove() }
+            }
+            refresh()
+        }.show()
     }
 
     private fun showFramesViewer() {
         val selected = BooleanArray(document.frames.size)
         val labels = document.frames.indices.map { "Quadro ${it + 1}" }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Visualizador de quadros")
+        AlertDialog.Builder(this).setTitle("Visualizador de quadros")
             .setMultiChoiceItems(labels, selected) { _, which, checked -> selected[which] = checked }
             .setNegativeButton("Fechar", null)
             .setPositiveButton("Copiar + colar depois") { _, _ ->
                 val indexes = selected.indices.filter { selected[it] }
-                val copies = document.copyRange(indexes)
-                document.pasteRange(copies)
+                document.pasteRange(document.copyRange(indexes))
                 refresh()
-            }
-            .show()
+            }.show()
     }
 
     private fun showInfo(title: String, message: String) {
